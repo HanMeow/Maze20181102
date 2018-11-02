@@ -173,7 +173,9 @@ const starting = () =>{
 		blkLength: 100,		//格寬高
 		DeadEnds: [],		//死路
 		bases: [],			//座標
-		RenQueue: []		//渲染列
+		RenQueue: [],		//渲染列
+		Deepest: [],		//最深
+		Toppest: []			//最高
 	};
 	game.seed = inputSeed.value = Math.random()*20181102|0;
 	game.blocks = inputBlocks.value = 100;
@@ -253,6 +255,9 @@ const GenMaze = n =>{
 
 	game.DeadEnds = [ [n,n],[n,n],[n,n],[n,n] ];//死路陣列，將原點也當作「死路」以方便計算
 
+	game.Deepest = [n,n,0];		//最深
+	game.Toppest = [n,n,n];		//最高
+
 	game.bases = [];								//座標陣列
 	for(let i=0;i<2*n;i++)game.bases.push([]);		//座標陣列
 
@@ -261,23 +266,25 @@ const GenMaze = n =>{
 
 	mb.x = mainWidth/2 - n*game.blkLength;								//平移迷宮
 	mb.y = mainHeight/2 - n*game.blkLength;								//平移迷宮
+	mb.scaleX = mb.scaleY = 1;											//重置迷宮縮放
 
 	let remain = randomWalk(n,n,n-1);			//長迷宮，剩下的步數
 
 	while(remain){													//還有剩下的步數就依序從死路長
 		let crd = game.DeadEnds.shift();							//死路第一個元素
 		if(crd[2])break;											//有檢查值代表跑完了
-		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
 		crd.push(1);												//加一個檢查值代表檢查過
-		if(crd[0]!=n && crd[1]!=n)game.DeadEnds.push( crd );		//為了比較路經最好還是加回來，待修
+		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
+		//game.DeadEnds.push( crd );		//為了比較路經最好還是加回來，待修
 	}
 
 	while(remain){													//還有剩下的步數就依序往最上面長
-		break;//待修
+		let crd = game.Toppest;										//最高元素座標
+		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
 	}
 
 	//排序找最遠，待修
-	game.DeadEnds.sort( (a,b)=>game.bases[ a[0] ][ a[1] ].depth - game.bases[ b[0] ][ b[1] ].depth );
+	//game.DeadEnds.sort( (a,b)=>game.bases[ a[0] ][ a[1] ].depth - game.bases[ b[0] ][ b[1] ].depth );
 
 	for(let i=0;i<game.RenQueue.length;i++){
 		mb.addChild(game.RenQueue[i]);
@@ -286,7 +293,7 @@ const GenMaze = n =>{
 
 	//起點顯示 S，終點顯示 E
 	mb.origin.TextD.text = "S";
-	game.bases[ game.DeadEnds.last()[0] ][ game.DeadEnds.last()[1] ].TextD.text = "E";
+	game.bases[ game.Deepest[0] ][ game.Deepest[1] ].TextD.text = "E";
 
 	ReDraw();
 }
@@ -328,8 +335,11 @@ const randomWalk = (x,y,n,depth=0) =>{
 
 			game.RenQueue.push( game.bases[ x+dx ][ y+dy ] = new lib.base() );	//新增路，以免碰撞，並加入渲染列
 			game.bases[ x+dx ][ y+dy ].depth = depth;							//登記深度
-			game.bases[ x+dx ][ y+dy ].x = (x+dx)*game.blkLength;					//紀錄座標
-			game.bases[ x+dx ][ y+dy ].y = (y+dy)*game.blkLength;					//紀錄座標
+			game.bases[ x+dx ][ y+dy ].x = (x+dx)*game.blkLength;				//紀錄座標
+			game.bases[ x+dx ][ y+dy ].y = (y+dy)*game.blkLength;				//紀錄座標
+
+			if(depth>game.Deepest[2])game.Deepest = [ x+dx, y+dy, depth ];		//檢查深度與更新深度
+			if(y+dy<game.Toppest[2])game.Toppest = [ x+dx, y+dy, y+dy ];		//檢查高度與更新高度
 
 			breakWall( game.bases[x][y], 1+dy+(dx>-1?0:2) );					//計算哪面牆要打掉(原點)
 			breakWall( game.bases[ x+dx ][ y+dy ], 2+dx-(dy<1?0:2) );			//計算哪面牆要打掉(新)
