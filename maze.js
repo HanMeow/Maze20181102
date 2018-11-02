@@ -4,7 +4,7 @@ var init;
 var lib = {};
 var loadManifest, loadManifestError, queue;
 
-var canvas, stage, exportRoot, game, mb, GenMaze, bases;
+var canvas, stage, exportRoot, game, mb;
 
 (()=>{
 //方便取得陣列末值
@@ -19,7 +19,8 @@ let mainWidth = 720,					//RWD寬
 	mainWHRatio = mainWidth/mainHeight,				//寬高比
 	log = console.log, 								//shortcut
 	inputBlocks, inputSeed, btnGen, inputStep,		//輸入值
-	p;												//shortcut
+	p,												//shortcut
+	cjs = window.createjs;							//shortcut
 
 //初始化
 init = () =>{
@@ -31,25 +32,25 @@ init = () =>{
 	canvas = document.getElementById("canvas");
 
 	//exportRoot = new lib.empty();
-	exportRoot = new createjs.Container();
+	exportRoot = new cjs.Container();
 
-	exportRoot.addChild( mb = new createjs.Container() );
+	exportRoot.addChild( mb = new cjs.Container() );
 
-	stage = new createjs.Stage("canvas");
+	stage = new cjs.Stage("canvas");
 
 	stage.addChild(exportRoot);
-	//createjs.Ticker.framerate = lib.properties.fps;
-	createjs.Ticker.framerate = 30;
+	//cjs.Ticker.framerate = lib.properties.fps;
+	cjs.Ticker.framerate = 30;
 	stage.update();
 
 	/*   
 	//可暫停寫法
-	createjs.Ticker.addEventListener("tick", e=>{
+	cjs.Ticker.addEventListener("tick", e=>{
 		if(!e.currentTarget.paused)stage.handleEvent(e);
 	});
 	*/
 
-	//createjs.Ticker.addEventListener("tick", stage);
+	//cjs.Ticker.addEventListener("tick", stage);
 
 	canvas.addEventListener('contextmenu', function(e){e.preventDefault();});
 	
@@ -90,18 +91,24 @@ init = () =>{
 	btnGen.addEventListener('click',btnGenClick);
 
 	//測試用
-	const mbMsDown = e =>{
-		e.currentTarget.lastX = e.localX;
-		e.currentTarget.lastY = e.localY;
+	const cvsMsDown = e =>{
+		let X = e.pageX || e.clientX || e.screenX,
+			Y = e.pageY || e.clientY || e.screenY;
+		e.currentTarget.lastX = X;
+		e.currentTarget.lastY = Y;
 	}
-	const mbMsMove = e =>{
+	const cvsMsMove = e =>{
+		let X = e.pageX || e.clientX || e.screenX,
+			Y = e.pageY || e.clientY || e.screenY;
+
 		if( e.currentTarget.lastX && e.currentTarget.lastY ){
-			mb.x += e.localX - e.currentTarget.lastX;
-			mb.y += e.localY - e.currentTarget.lastY;
-			e.currentTarget.lastX = e.localX;
-			e.currentTarget.lastY = e.localY;
-			ReDraw();
+			mbTrans(X - e.currentTarget.lastX, Y - e.currentTarget.lastY);
+			e.currentTarget.lastX = X;
+			e.currentTarget.lastY = Y;
 		}
+	}
+	const cvsMsUp = e =>{
+		e.currentTarget.lastX = e.currentTarget.lastY = undefined;
 	}
 	const cvsTchMove = e =>{
 		e.preventDefault();
@@ -109,22 +116,20 @@ init = () =>{
 		let X = e.changedTouches[0].pageX || e.changedTouches[0].clientX || e.changedTouches[0].screenX,
 			Y = e.changedTouches[0].pageY || e.changedTouches[0].clientY || e.changedTouches[0].screenY;
 	
-		if( e.currentTarget.lastX && e.currentTarget.lastY ){
-			mb.x += (X - e.currentTarget.lastX)/exportRoot.scaleX;
-			mb.y += (Y - e.currentTarget.lastY)/exportRoot.scaleY;
-			ReDraw();
-		}
+		if( e.currentTarget.lastX && e.currentTarget.lastY )
+			mbTrans(X - e.currentTarget.lastX, Y - e.currentTarget.lastY);
 
-		e.currentTarget.lastX = e.changedTouches[0].pageX || e.changedTouches[0].clientX || e.changedTouches[0].screenX;
-		e.currentTarget.lastY = e.changedTouches[0].pageY || e.changedTouches[0].clientY || e.changedTouches[0].screenY;
+		e.currentTarget.lastX = X;
+		e.currentTarget.lastY = Y;
 	
 	}
 	const cvsTchEnd = e =>{
 		e.preventDefault();
 		e.currentTarget.lastX = e.currentTarget.lastY = undefined;
 	}
-	mb.addEventListener('mousedown',mbMsDown);
-	mb.addEventListener('pressmove',mbMsMove);
+	canvas.addEventListener('mousedown',cvsMsDown);
+	canvas.addEventListener('mousemove',cvsMsMove);
+	canvas.addEventListener('mouseup',cvsMsUp);
 	canvas.addEventListener('touchmove', cvsTchMove);
 	canvas.addEventListener('touchend', cvsTchEnd);
 	//測試用
@@ -139,7 +144,10 @@ const starting = () =>{
 		probMain: 1000,		//機率主數
 		forks2: 100,		//二岔路機率
 		forks3: 50,			//三叉路機率
-		DeadEnds: []		//死路
+		blkLength: 100,		//格寬高
+		DeadEnds: [],		//死路
+		bases: [],			//座標
+		RenQueue: []		//渲染列
 	};
 	game.seed = inputSeed.value = Math.random()*20181102|0;
 	game.blocks = inputBlocks.value = 100;
@@ -150,49 +158,49 @@ const starting = () =>{
 (lib.base = function(mode,startPosition,loop) {
 	this.initialize(mode,startPosition,loop,{});
 
-	this.addChild( this.shape = new createjs.Shape() );
+	this.addChild( this.shape = new cjs.Shape() );
 	this.shape.graphics.f("#ffa045").dr(-46,-46,93,93);
 
 	//------畫牆壁------
 	this.walls = [];
 
-	this.addChild( this.walls[0] = new createjs.Shape() );
+	this.addChild( this.walls[0] = new cjs.Shape() );
 	this.walls[0].graphics.s("#421f0c").ss(7,2,2).mt(-47,-47).lt(47,-47).es();
 
-	this.addChild( this.walls[1] = new createjs.Shape() );
+	this.addChild( this.walls[1] = new cjs.Shape() );
 	this.walls[1].graphics.s("#421f0c").ss(7,2,2).mt(47,-47).lt(47,47).es();
 
-	this.addChild( this.walls[2] = new createjs.Shape() );
+	this.addChild( this.walls[2] = new cjs.Shape() );
 	this.walls[2].graphics.s("#421f0c").ss(7,2,2).mt(47,47).lt(-47,47).es();
 
-	this.addChild( this.walls[3] = new createjs.Shape() );
+	this.addChild( this.walls[3] = new cjs.Shape() );
 	this.walls[3].graphics.s("#421f0c").ss(7,2,2).mt(-47,47).lt(-47,-47).es();
 	//------畫牆壁------
 
 	//------畫角落------
 	this.cnr = [];
 
-	this.addChild( this.cnr[0] = new createjs.Shape() );
+	this.addChild( this.cnr[0] = new cjs.Shape() );
 	this.cnr[0].graphics.f("#421f0c").dc(-48,-48,9);
 
-	this.addChild( this.cnr[1] = new createjs.Shape() );
+	this.addChild( this.cnr[1] = new cjs.Shape() );
 	this.cnr[1].graphics.f("#421f0c").dc(48,-48,9);
 
-	this.addChild( this.cnr[2] = new createjs.Shape() );
+	this.addChild( this.cnr[2] = new cjs.Shape() );
 	this.cnr[2].graphics.f("#421f0c").dc(48,48,9);
 
-	this.addChild( this.cnr[3] = new createjs.Shape() );
+	this.addChild( this.cnr[3] = new cjs.Shape() );
 	this.cnr[3].graphics.f("#421f0c").dc(-48,48,9);
 	//------畫角落------
 
-	this.addChild( this.TextD = new createjs.Text("", "50px 'Arial'", "#FFFFFF") );
+	this.addChild( this.TextD = new cjs.Text("", "50px 'Arial'", "#FFFFFF") );
 	this.TextD.textAlign = 'center';
 	this.TextD.lineHeight = 50;
 	this.TextD.lineWidth = 50;
 	this.TextD.parent = this;
 	this.TextD.setTransform(0,-25);
 
-}).prototype = p = new createjs.Container();
+}).prototype = p = new cjs.Container();
 
 //拆牆函數
 const breakWall = (obj,i) =>{
@@ -210,48 +218,41 @@ const seedrandom = () =>{
 
 const directions = [ [0,-1], [1,0], [0,1], [-1,0] ];
 
-GenMaze = n =>{
+const GenMaze = n =>{
 	if(n<2)return;	//步數過小移除
 
 	mb.removeAllChildren();
 
-	game.DeadEnds = [];							//死路陣列
+	game.DeadEnds = [ [n,n],[n,n],[n,n],[n,n] ];//死路陣列，將原點也當作「死路」以方便計算
 
-	bases = [];									//迷宮陣列
-	for(let i=0;i<2*n;i++)bases.push([]);		//迷宮陣列
-	mb.origin = bases[n][n] = new lib.base();	//迷宮中心
-	mb.x = mainWidth/2 - n*100;					//迷宮中心座標
-	mb.y = mainHeight/2 - n*100;				//迷宮中心座標
+	game.bases = [];								//座標陣列
+	for(let i=0;i<2*n;i++)game.bases.push([]);		//座標陣列
 
-	let remain;
-	if(remain = randomWalk(n,n,n-1))			//若有剩下重複執行
-		if(remain = randomWalk(n,n,remain))		//若有剩下重複執行
-			if(remain = randomWalk(n,n,remain))	//若有剩下重複執行
-				if(remain = randomWalk(n,n,remain));//四次為上限
+	game.RenQueue = [ mb.origin = game.bases[n][n] = new lib.base() ];	//迷宮中心，加入渲染列
+	mb.origin.x = mb.origin.y = n*game.blkLength;						//迷宮中心座標
 
-	while(remain){								//還有剩下的就依序從死路長
-		let crd = game.DeadEnds.shift();		//死路第一個元素
-		remain = randomWalk(crd[0], crd[1], remain, bases[ crd[0] ][ crd[1] ].depth);
-		game.DeadEnds.push( crd );				//為了比較路經最好還是加回來，待修
+	mb.x = mainWidth/2 - n*game.blkLength;								//平移迷宮
+	mb.y = mainHeight/2 - n*game.blkLength;								//平移迷宮
+
+	let remain = randomWalk(n,n,n-1);			//長迷宮，剩下的步數
+
+	while(remain){													//還有剩下的步數就依序從死路長
+		let crd = game.DeadEnds.shift();							//死路第一個元素
+		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
+		if(crd[0]!=n && crd[1]!=n)game.DeadEnds.push( crd );		//為了比較路經最好還是加回來，待修
 	}
 
 	//排序找最遠，待修
-	game.DeadEnds.sort( (a,b)=>bases[ a[0] ][ a[1] ].depth - bases[ b[0] ][ b[1] ].depth );
+	game.DeadEnds.sort( (a,b)=>game.bases[ a[0] ][ a[1] ].depth - game.bases[ b[0] ][ b[1] ].depth );
 
-	log(game.DeadEnds);
-
-	for(let i=0;i<bases.length;i++)
-		for(let j=0;j<bases[i].length;j++)
-			if(bases[i][j]){
-				mb.addChild(bases[i][j]);
-				bases[i][j].x = i*100;
-				bases[i][j].y = j*100;
-				if(inputStep.checked)bases[i][j].TextD.text = bases[i][j].depth;
-			}
+	for(let i=0;i<game.RenQueue.length;i++){
+		mb.addChild(game.RenQueue[i]);
+		if(inputStep.checked)game.RenQueue[i].TextD.text = game.RenQueue[i].depth;
+	}
 
 	//起點顯示 S，終點顯示 E
 	mb.origin.TextD.text = "S";
-	bases[ game.DeadEnds.last()[0] ][ game.DeadEnds.last()[1] ].TextD.text = "E";
+	game.bases[ game.DeadEnds.last()[0] ][ game.DeadEnds.last()[1] ].TextD.text = "E";
 
 	ReDraw();
 }
@@ -269,7 +270,7 @@ const randomWalk = (x,y,n,depth=0) =>{
 			rs = [];										//路
 
 		for(let i=0;i<drs.length;i++)
-			if(bases[ x+drs[i][0] ][ y+drs[i][1] ]){		//該方向已走過刪除
+			if(game.bases[ x+drs[i][0] ][ y+drs[i][1] ]){		//該方向已走過刪除
 				drs.splice(i,1);							//該方向已走過刪除
 				i--;										//該方向已走過刪除
 			}
@@ -291,15 +292,17 @@ const randomWalk = (x,y,n,depth=0) =>{
 			let dx = rs[i][0],	//X方向
 				dy = rs[i][1];	//Y方向
 
-			bases[ x+dx ][ y+dy ] = new lib.base();		//新增路，以免碰撞
-			bases[ x+dx ][ y+dy ].depth = depth;		//登記深度
+			game.RenQueue.push( game.bases[ x+dx ][ y+dy ] = new lib.base() );	//新增路，以免碰撞，並加入渲染列
+			game.bases[ x+dx ][ y+dy ].depth = depth;							//登記深度
+			game.bases[ x+dx ][ y+dy ].x = (x+dx)*game.blkLength;					//紀錄座標
+			game.bases[ x+dx ][ y+dy ].y = (y+dy)*game.blkLength;					//紀錄座標
 
-			breakWall( bases[x][y], 1+dy+(dx>-1?0:2) );				//計算哪面牆要打掉(原點)
-			breakWall( bases[ x+dx ][ y+dy ], 2+dx-(dy<1?0:2) );	//計算哪面牆要打掉(新)
+			breakWall( game.bases[x][y], 1+dy+(dx>-1?0:2) );					//計算哪面牆要打掉(原點)
+			breakWall( game.bases[ x+dx ][ y+dy ], 2+dx-(dy<1?0:2) );			//計算哪面牆要打掉(新)
 		}
 
 		for(let i=0;i<rs.length-1;i++)
-			if(rs.length-i>1){	//如果是叉路則執行新的步行函數
+			if(rs.length-i>1){											//如果是叉路則執行新的步行函數
 				let fn = ( seedrandom()*n/(rs.length-i) )|0;			//分配給岔路步數
 				if(fn==0){
 					game.DeadEnds.push( [ x+rs[i][0], y+rs[i][1] ] ); 	//若分配到的布數等於零，該格為死路
@@ -319,6 +322,13 @@ const randomWalk = (x,y,n,depth=0) =>{
 	log(`remain n: ${n} and returning.`);
 
 	return n;
+}
+
+//平移迷宮
+const mbTrans = (x,y) =>{
+	mb.x += x/exportRoot.scaleX;
+	mb.y += y/exportRoot.scaleY;
+	ReDraw();
 }
 
 const ReDraw = () =>{
