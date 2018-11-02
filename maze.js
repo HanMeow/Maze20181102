@@ -89,11 +89,11 @@ init = () =>{
 	btnGen.addEventListener('click',btnGenClick);
 
 	//測試用
-	mbMsDown = e =>{
+	const mbMsDown = e =>{
 		e.currentTarget.lastX = e.localX;
 		e.currentTarget.lastY = e.localY;
 	}
-	mbMsMove = e =>{
+	const mbMsMove = e =>{
 		if( e.currentTarget.lastX && e.currentTarget.lastY ){
 			mb.x += e.localX - e.currentTarget.lastX;
 			mb.y += e.localY - e.currentTarget.lastY;
@@ -102,8 +102,30 @@ init = () =>{
 			ReDraw();
 		}
 	}
+	const cvsTchMove = e =>{
+		e.preventDefault();
+
+		let X = e.changedTouches[0].pageX || e.changedTouches[0].clientX || e.changedTouches[0].screenX,
+			Y = e.changedTouches[0].pageY || e.changedTouches[0].clientY || e.changedTouches[0].screenY;
+	
+		if( e.currentTarget.lastX && e.currentTarget.lastY ){
+			mb.x += (X - e.currentTarget.lastX)/exportRoot.scaleX;
+			mb.y += (Y - e.currentTarget.lastY)/exportRoot.scaleY;
+			ReDraw();
+		}
+
+		e.currentTarget.lastX = e.changedTouches[0].pageX || e.changedTouches[0].clientX || e.changedTouches[0].screenX;
+		e.currentTarget.lastY = e.changedTouches[0].pageY || e.changedTouches[0].clientY || e.changedTouches[0].screenY;
+	
+	}
+	const cvsTchEnd = e =>{
+		e.preventDefault();
+		e.currentTarget.lastX = e.currentTarget.lastY = undefined;
+	}
 	mb.addEventListener('mousedown',mbMsDown);
 	mb.addEventListener('pressmove',mbMsMove);
+	canvas.addEventListener('touchmove', cvsTchMove);
+	canvas.addEventListener('touchend', cvsTchEnd);
 	//測試用
 
 	starting();
