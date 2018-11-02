@@ -256,7 +256,7 @@ const GenMaze = n =>{
 	game.DeadEnds = [ [n,n],[n,n],[n,n],[n,n] ];//死路陣列，將原點也當作「死路」以方便計算
 
 	game.Deepest = [n,n,0];		//最深
-	game.Toppest = [n,n,n];		//最高
+	game.Toppest = [n,n];		//最高
 
 	game.bases = [];								//座標陣列
 	for(let i=0;i<2*n;i++)game.bases.push([]);		//座標陣列
@@ -270,16 +270,19 @@ const GenMaze = n =>{
 
 	let remain = randomWalk(n,n,n-1);			//長迷宮，剩下的步數
 
-	while(remain){													//還有剩下的步數就依序從死路長
+	while(remain>0){												//還有剩下的步數就依序從死路長
+		if(game.DeadEnds.length<=0)break;							//無死路則中止
 		let crd = game.DeadEnds.shift();							//死路第一個元素
-		if(crd[2])break;											//有檢查值代表跑完了
-		crd.push(1);												//加一個檢查值代表檢查過
+		log(`growing ending [${crd[0]}, ${crd[1]}], remain: ${remain}, ends: ${game.DeadEnds.length}.`);
+		//if(crd[2])break;											//有檢查值代表跑完了
+		//crd[2] = 1;												//加一個檢查值代表檢查過
 		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
 		//game.DeadEnds.push( crd );		//為了比較路經最好還是加回來，待修
 	}
 
-	while(remain){													//還有剩下的步數就依序往最上面長
+	while(remain>0){												//還有剩下的步數就依序往最上面長
 		let crd = game.Toppest;										//最高元素座標
+		log(`growing top [${crd[0]}, ${crd[1]}], remain: ${remain}.`);
 		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
 	}
 
@@ -301,10 +304,10 @@ const GenMaze = n =>{
 const randomWalk = (x,y,n,depth=0) =>{
 	if(!x || !y || !n)return n || 0;
 
-	log(`New path starting with x: ${x}, y: ${y}, n: ${n}, depth: ${depth}.`);
+	//log(`New path starting with x: ${x}, y: ${y}, n: ${n}, depth: ${depth}.`);
 
 	//持續步行至步數歸零
-	while(n){
+	while(n>0){
 
 		let drs = directions.slice(0,directions.length), 	//複製方向陣列
 			p = seedrandom()*game.probMain,					//岔路機率
@@ -339,7 +342,7 @@ const randomWalk = (x,y,n,depth=0) =>{
 			game.bases[ x+dx ][ y+dy ].y = (y+dy)*game.blkLength;				//紀錄座標
 
 			if(depth>game.Deepest[2])game.Deepest = [ x+dx, y+dy, depth ];		//檢查深度與更新深度
-			if(y+dy<game.Toppest[2])game.Toppest = [ x+dx, y+dy, y+dy ];		//檢查高度與更新高度
+			if(y+dy<game.Toppest[1])game.Toppest = [ x+dx, y+dy ];		//檢查高度與更新高度
 
 			breakWall( game.bases[x][y], 1+dy+(dx>-1?0:2) );					//計算哪面牆要打掉(原點)
 			breakWall( game.bases[ x+dx ][ y+dy ], 2+dx-(dy<1?0:2) );			//計算哪面牆要打掉(新)
@@ -359,11 +362,10 @@ const randomWalk = (x,y,n,depth=0) =>{
 		x = x + rs[ rs.length-1 ][0];	//下一個座標
 		y = y + rs[ rs.length-1 ][1];	//下一個座標
 
+		if(n<1)game.DeadEnds.push( [ x, y ] );	//無步數，迴圈中止，該格為死路
 	}
 
-	game.DeadEnds.push( [ x, y ] );	//迴圈中止，該格為死路
-
-	log(`remain n: ${n} and returning.`);
+	//log(`remain n: ${n} and returning.`);
 
 	return n;
 }
