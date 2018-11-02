@@ -221,7 +221,9 @@ const directions = [ [0,-1], [1,0], [0,1], [-1,0] ];
 const GenMaze = n =>{
 	if(n<2)return;	//步數過小移除
 
-	mb.removeAllChildren();
+	game.seed = game.seed*n|0;					//修正隨機性
+
+	mb.removeAllChildren();						//刪除原有迷宮
 
 	game.DeadEnds = [ [n,n],[n,n],[n,n],[n,n] ];//死路陣列，將原點也當作「死路」以方便計算
 
