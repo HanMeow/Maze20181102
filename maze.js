@@ -14,12 +14,12 @@ if(!Array.prototype.last){
     };
 };
 
-//RWD寬高
-var mainWidth = 720,
-	mainHeight = 1280,
-	mainWHRatio = mainWidth/mainHeight,
-	log = console.log, //shortcut
-	inputBlocks, inputSeed, btnGen;
+let mainWidth = 720,					//RWD寬
+	mainHeight = 1280,					//RWD高
+	mainWHRatio = mainWidth/mainHeight,	//寬高比
+	log = console.log, 					//shortcut
+	inputBlocks, inputSeed, btnGen,		//輸入值
+	p;									//shortcut
 
 //初始化
 init = () =>{
@@ -172,7 +172,12 @@ const starting = () =>{
 	this.TextD.parent = this;
 	this.TextD.setTransform(0,-25);
 
-}).prototype = new createjs.Container();
+}).prototype = p = new createjs.Container();
+
+//拆牆函數
+const breakWall = (obj,i) =>{
+	obj.walls[i].visible = false;
+}
 
 const seedrandom = () =>{
 	let a = 68903,	//prime 1
@@ -251,8 +256,8 @@ const randomWalk = (x,y,n,depth=0) =>{
 			bases[ x+dx ][ y+dy ] = new lib.base();		//新增路，以免碰撞
 			bases[ x+dx ][ y+dy ].depth = depth;		//登記深度
 
-			bases[x][y].walls[ 1+dy+(dx>-1?0:2) ].visible = false;		//計算哪面牆要打掉(原點)
-			bases[ x+dx ][ y+dy ].walls[ 2+dx-(dy<1?0:2) ].visible = false;	//計算哪面牆要打掉(新)
+			breakWall( bases[x][y], 1+dy+(dx>-1?0:2) );				//計算哪面牆要打掉(原點)
+			breakWall( bases[ x+dx ][ y+dy ], 2+dx-(dy<1?0:2) );	//計算哪面牆要打掉(新)
 		}
 
 		for(let i=0;i<rs.length-1;i++)
