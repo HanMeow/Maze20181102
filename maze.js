@@ -215,6 +215,9 @@ GenMaze = n =>{
 		remain = randomWalk(crd[0], crd[1], remain, bases[ crd[0] ][ crd[1] ].depth);
 	}
 
+	//排序找最遠，待修
+	game.DeadEnds.sort( (a,b)=>bases[ b[0] ][ b[1] ].depth - bases[ a[0] ][ a[1] ].depth );
+
 	for(let i=0;i<bases.length;i++)
 		for(let j=0;j<bases[i].length;j++)
 			if(bases[i][j]){
@@ -223,6 +226,10 @@ GenMaze = n =>{
 				bases[i][j].y = j*100;
 				if(inputStep.checked)bases[i][j].TextD.text = bases[i][j].depth;
 			}
+
+	//起點顯示 S，終點顯示 E
+	mb.origin.TextD.text = "S";
+	bases[ game.DeadEnds[0][0] ][ game.DeadEnds[0][1] ].TextD.text = "E";
 
 	ReDraw();
 }
