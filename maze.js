@@ -138,7 +138,8 @@ const starting = () =>{
 	game = {
 		probMain: 1000,		//機率主數
 		forks2: 100,		//二岔路機率
-		forks3: 50			//三叉路機率
+		forks3: 50,			//三叉路機率
+		DeadEnds: []		//死路
 	};
 	game.seed = inputSeed.value = Math.random()*20181102|0;
 	game.blocks = inputBlocks.value = 100;
@@ -195,6 +196,8 @@ GenMaze = n =>{
 
 	mb.removeAllChildren();
 
+	game.DeadEnds = [];							//死路陣列
+
 	bases = [];									//迷宮陣列
 	for(let i=0;i<2*n;i++)bases.push([]);		//迷宮陣列
 	mb.origin = bases[n][n] = new lib.base();	//迷宮中心
@@ -206,6 +209,11 @@ GenMaze = n =>{
 		if(remain = randomWalk(n,n,remain))		//若有剩下重複執行
 			if(remain = randomWalk(n,n,remain))	//若有剩下重複執行
 				if(remain = randomWalk(n,n,remain));//四次為上限
+
+	while(remain){								//還有剩下的就依序從死路長
+		let crd = game.DeadEnds.shift();		//死路第一個元素
+		remain = randomWalk(crd[0], crd[1], remain, bases[ crd[0] ][ crd[1] ].depth);
+	}
 
 	for(let i=0;i<bases.length;i++)
 		for(let j=0;j<bases[i].length;j++)
@@ -263,9 +271,13 @@ const randomWalk = (x,y,n,depth=0) =>{
 
 		for(let i=0;i<rs.length-1;i++)
 			if(rs.length-i>1){	//如果是叉路則執行新的步行函數
-				let fn = ( seedrandom()*n/(rs.length-i) )|0;		//分配給岔路步數
-				n -= fn;											//分配給岔路步數
-				n += randomWalk( x+rs[i][0], y+rs[i][1], fn, depth);//岔路函數
+				let fn = ( seedrandom()*n/(rs.length-i) )|0;			//分配給岔路步數
+				if(fn==0){
+					game.DeadEnds.push( [ x+rs[i][0], y+rs[i][1] ] ); 	//若分配到的布數等於零，該格為死路
+				}else{
+					n -= fn;											//分配給岔路步數
+					n += randomWalk( x+rs[i][0], y+rs[i][1], fn, depth);//岔路函數
+				}
 			}
 
 		x = x + rs[ rs.length-1 ][0];	//下一個座標
@@ -273,10 +285,11 @@ const randomWalk = (x,y,n,depth=0) =>{
 
 	}
 
+	game.DeadEnds.push( [ x, y ] );	//迴圈中止，該格為死路
+
 	log(`remain n: ${n} and returning.`);
 
 	return n;
-
 }
 
 const ReDraw = () =>{
