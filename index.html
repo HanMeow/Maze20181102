@@ -41,6 +41,10 @@
 		text-align: right;
 		padding-right: 5px;
 		text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+		margin-right: 0;
+	}
+	label[class=check]{
+		width: 90%;
 	}
 	input{
 		width: 50%;
@@ -70,6 +74,13 @@
 		font-weight: normal;
 		cursor: pointer;
 	}
+	input[type=checkbox]{
+		width: 1.2em;
+		height: 1.2em;
+		float: right;
+		text-align: right;
+		cursor: pointer;
+	}
 	input[type=button]:active{
 		transform: translate(2px,2px);
 		box-shadow: 0px 0px 0px rgba(0,0,0,0.2);
@@ -83,6 +94,7 @@
 	    <li><label>Blocks:</label><input id=blocks type="text"/></li>
 	    <li><label>Seed:</label><input id=seed type="text"/></li>
 	    <li><input id=generate type="button" value="generate"/></li>
-	 </ul>
+	    <li><label class="check">Show steps:</label><input type="checkbox" id="steps" checked /></li>
+	</ul>
 </body>
-</html>
+</html> 

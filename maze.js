@@ -16,16 +16,17 @@ if(!Array.prototype.last){
 
 let mainWidth = 720,					//RWD寬
 	mainHeight = 1280,					//RWD高
-	mainWHRatio = mainWidth/mainHeight,	//寬高比
-	log = console.log, 					//shortcut
-	inputBlocks, inputSeed, btnGen,		//輸入值
-	p;									//shortcut
+	mainWHRatio = mainWidth/mainHeight,				//寬高比
+	log = console.log, 								//shortcut
+	inputBlocks, inputSeed, btnGen, inputStep,		//輸入值
+	p;												//shortcut
 
 //初始化
 init = () =>{
 	inputBlocks = document.getElementById("blocks");
 	inputSeed = document.getElementById("seed");
 	btnGen = document.getElementById("generate");
+	inputStep = document.getElementById("steps");
 
 	canvas = document.getElementById("canvas");
 
@@ -165,7 +166,7 @@ const starting = () =>{
 	this.addChild( this.walls[3] = new createjs.Shape() );
 	this.walls[3].graphics.s("#421f0c").ss(7,2,2).mt(-47,48).lt(-47,-48).es();
 
-	this.addChild( this.TextD = new createjs.Text("(文字)", "50px 'Arial'", "#FFFFFF") );
+	this.addChild( this.TextD = new createjs.Text("", "50px 'Arial'", "#FFFFFF") );
 	this.TextD.textAlign = 'center';
 	this.TextD.lineHeight = 50;
 	this.TextD.lineWidth = 50;
@@ -212,7 +213,7 @@ GenMaze = n =>{
 				mb.addChild(bases[i][j]);
 				bases[i][j].x = i*100;
 				bases[i][j].y = j*100;
-				bases[i][j].TextD.text = bases[i][j].depth;
+				if(inputStep.checked)bases[i][j].TextD.text = bases[i][j].depth;
 			}
 
 	ReDraw();
