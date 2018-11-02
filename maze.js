@@ -266,8 +266,14 @@ const GenMaze = n =>{
 
 	while(remain){													//還有剩下的步數就依序從死路長
 		let crd = game.DeadEnds.shift();							//死路第一個元素
+		if(crd[2])break;											//有檢查值代表跑完了
 		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
+		crd.push(1);												//加一個檢查值代表檢查過
 		if(crd[0]!=n && crd[1]!=n)game.DeadEnds.push( crd );		//為了比較路經最好還是加回來，待修
+	}
+
+	while(remain){													//還有剩下的步數就依序往最上面長
+		break;//待修
 	}
 
 	//排序找最遠，待修
