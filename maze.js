@@ -110,6 +110,31 @@ init = () =>{
 	const cvsMsUp = e =>{
 		e.currentTarget.lastX = e.currentTarget.lastY = undefined;
 	}
+	const cvsWheel = e =>{
+		let X = (e.pageX || e.clientX || e.screenX) - exportRoot.x,
+			Y = (e.pageY || e.clientY || e.screenY) - exportRoot.y,
+			S = mb.scaleY;
+		X /= exportRoot.scaleX;
+		Y /= exportRoot.scaleY;
+
+		if(e.deltaY>0 && mb.scaleY>0.2){
+
+			mb.x += ( X - mb.x )*0.1/S;
+			mb.y += ( Y - mb.y )*0.1/S;
+
+			mb.scaleX = mb.scaleY -= 0.1;
+
+		}else if(e.deltaY<0){
+
+			mb.x -= ( X - mb.x )*0.1/S;
+			mb.y -= ( Y - mb.y )*0.1/S;
+
+			mb.scaleX = mb.scaleY += 0.1;
+
+		}
+
+		ReDraw();
+	}
 	const cvsTchMove = e =>{
 		e.preventDefault();
 
@@ -127,11 +152,12 @@ init = () =>{
 		e.preventDefault();
 		e.currentTarget.lastX = e.currentTarget.lastY = undefined;
 	}
-	canvas.addEventListener('mousedown',cvsMsDown);
-	canvas.addEventListener('mousemove',cvsMsMove);
-	canvas.addEventListener('mouseup',cvsMsUp);
-	canvas.addEventListener('touchmove', cvsTchMove);
-	canvas.addEventListener('touchend', cvsTchEnd);
+	canvas.addEventListener('mousedown',	cvsMsDown);
+	canvas.addEventListener('mousemove',	cvsMsMove);
+	canvas.addEventListener('mouseup',		cvsMsUp);
+	canvas.addEventListener('wheel',		cvsWheel)
+	canvas.addEventListener('touchmove',	cvsTchMove);
+	canvas.addEventListener('touchend',	 	cvsTchEnd);
 	//測試用
 
 	starting();
@@ -328,8 +354,8 @@ const randomWalk = (x,y,n,depth=0) =>{
 
 //平移迷宮
 const mbTrans = (x,y) =>{
-	mb.x += x/exportRoot.scaleX;
-	mb.y += y/exportRoot.scaleY;
+	mb.x += (x/exportRoot.scaleX);
+	mb.y += (y/exportRoot.scaleY);
 	ReDraw();
 }
 
