@@ -151,21 +151,39 @@ const starting = () =>{
 	this.initialize(mode,startPosition,loop,{});
 
 	this.addChild( this.shape = new createjs.Shape() );
-	this.shape.graphics.f("#ffa045").dr(-46,-46,92,92);
+	this.shape.graphics.f("#ffa045").dr(-46,-46,93,93);
 
+	//------畫牆壁------
 	this.walls = [];
 
 	this.addChild( this.walls[0] = new createjs.Shape() );
-	this.walls[0].graphics.s("#421f0c").ss(7,2,2).mt(-48,-47).lt(48,-47).es();
+	this.walls[0].graphics.s("#421f0c").ss(7,2,2).mt(-47,-47).lt(47,-47).es();
 
 	this.addChild( this.walls[1] = new createjs.Shape() );
-	this.walls[1].graphics.s("#421f0c").ss(7,2,2).mt(47,-48).lt(47,48).es();
+	this.walls[1].graphics.s("#421f0c").ss(7,2,2).mt(47,-47).lt(47,47).es();
 
 	this.addChild( this.walls[2] = new createjs.Shape() );
-	this.walls[2].graphics.s("#421f0c").ss(7,2,2).mt(48,47).lt(-48,47).es();
+	this.walls[2].graphics.s("#421f0c").ss(7,2,2).mt(47,47).lt(-47,47).es();
 
 	this.addChild( this.walls[3] = new createjs.Shape() );
-	this.walls[3].graphics.s("#421f0c").ss(7,2,2).mt(-47,48).lt(-47,-48).es();
+	this.walls[3].graphics.s("#421f0c").ss(7,2,2).mt(-47,47).lt(-47,-47).es();
+	//------畫牆壁------
+
+	//------畫角落------
+	this.cnr = [];
+
+	this.addChild( this.cnr[0] = new createjs.Shape() );
+	this.cnr[0].graphics.f("#421f0c").dc(-48,-48,9);
+
+	this.addChild( this.cnr[1] = new createjs.Shape() );
+	this.cnr[1].graphics.f("#421f0c").dc(48,-48,9);
+
+	this.addChild( this.cnr[2] = new createjs.Shape() );
+	this.cnr[2].graphics.f("#421f0c").dc(48,48,9);
+
+	this.addChild( this.cnr[3] = new createjs.Shape() );
+	this.cnr[3].graphics.f("#421f0c").dc(-48,48,9);
+	//------畫角落------
 
 	this.addChild( this.TextD = new createjs.Text("", "50px 'Arial'", "#FFFFFF") );
 	this.TextD.textAlign = 'center';
@@ -178,7 +196,8 @@ const starting = () =>{
 
 //拆牆函數
 const breakWall = (obj,i) =>{
-	obj.walls[i].visible = false;
+	//obj.walls[i].visible = false;
+	obj.walls[i].graphics._instructions[4].style = "#ffa045";
 }
 
 const seedrandom = () =>{
@@ -213,10 +232,13 @@ GenMaze = n =>{
 	while(remain){								//還有剩下的就依序從死路長
 		let crd = game.DeadEnds.shift();		//死路第一個元素
 		remain = randomWalk(crd[0], crd[1], remain, bases[ crd[0] ][ crd[1] ].depth);
+		game.DeadEnds.push( crd );				//為了比較路經最好還是加回來，待修
 	}
 
 	//排序找最遠，待修
-	game.DeadEnds.sort( (a,b)=>bases[ b[0] ][ b[1] ].depth - bases[ a[0] ][ a[1] ].depth );
+	game.DeadEnds.sort( (a,b)=>bases[ a[0] ][ a[1] ].depth - bases[ b[0] ][ b[1] ].depth );
+
+	log(game.DeadEnds);
 
 	for(let i=0;i<bases.length;i++)
 		for(let j=0;j<bases[i].length;j++)
@@ -229,7 +251,7 @@ GenMaze = n =>{
 
 	//起點顯示 S，終點顯示 E
 	mb.origin.TextD.text = "S";
-	bases[ game.DeadEnds[0][0] ][ game.DeadEnds[0][1] ].TextD.text = "E";
+	bases[ game.DeadEnds.last()[0] ][ game.DeadEnds.last()[1] ].TextD.text = "E";
 
 	ReDraw();
 }
