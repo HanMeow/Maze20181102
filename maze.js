@@ -1,7 +1,7 @@
 var init;
 
-//var lib = AdobeAn.compositions['5F9563222A1BEF42BC13F365CB2A987E'].getLibrary(); //函數庫
-var lib = {};
+var lib = AdobeAn.compositions['BB9F837154AFB14390C1FB86F2D616B2'].getLibrary(); //函數庫
+//var lib = {};
 var loadManifest, loadManifestError, queue;
 
 var canvas, stage, exportRoot, game, mb;
@@ -228,12 +228,18 @@ const starting = () =>{
 	this.TextD.parent = this;
 	this.TextD.setTransform(0,-25);
 
+	this.type = 'basic';
+
 }).prototype = p = new cjs.Container();
 
 //拆牆函數
 const breakWall = (obj,i) =>{
 	//obj.walls[i].visible = false;
-	obj.walls[i].graphics._instructions[4].style = "#ffa045";
+	if(obj.type == 'basic')obj.walls[i].graphics._instructions[4].style = "#ffa045";
+	else{
+		i = i|0;
+		obj.gotoAndStop( obj.currentFrame + (1<<i) );
+	}
 }
 
 const seedrandom = () =>{
@@ -262,7 +268,7 @@ const GenMaze = n =>{
 	game.bases = [];								//座標陣列
 	for(let i=0;i<2*n;i++)game.bases.push([]);		//座標陣列
 
-	game.RenQueue = [ mb.origin = game.bases[n][n] = new lib.base() ];	//迷宮中心，加入渲染列
+	game.RenQueue = [ mb.origin = game.bases[n][n] = new lib.base1() ];	//迷宮中心，加入渲染列
 	mb.origin.x = mb.origin.y = n*game.blkLength;						//迷宮中心座標
 
 	mb.x = mainWidth/2 - n*game.blkLength;								//平移迷宮
@@ -337,7 +343,7 @@ const randomWalk = (x,y,n,depth=0) =>{
 			let dx = rs[i][0],	//X方向
 				dy = rs[i][1];	//Y方向
 
-			game.RenQueue.push( game.bases[ x+dx ][ y+dy ] = new lib.base() );	//新增路，以免碰撞，並加入渲染列
+			game.RenQueue.push( game.bases[ x+dx ][ y+dy ] = new lib.base1() );	//新增路，以免碰撞，並加入渲染列
 			game.bases[ x+dx ][ y+dy ].depth = depth;							//登記深度
 			game.bases[ x+dx ][ y+dy ].x = (x+dx)*game.blkLength;				//紀錄座標
 			game.bases[ x+dx ][ y+dy ].y = (y+dy)*game.blkLength;				//紀錄座標
