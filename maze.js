@@ -19,6 +19,7 @@ let mainWidth = 720,					//RWD寬
 	mainWHRatio = mainWidth/mainHeight,				//寬高比
 	log = console.log, 								//shortcut
 	inputBlocks, inputSeed, btnGen, inputStep,		//輸入值
+	inputWColor, inputFColor,						//輸入值
 	p,												//shortcut
 	cjs = window.createjs;							//shortcut
 
@@ -28,6 +29,8 @@ init = () =>{
 	inputSeed = document.getElementById("seed");
 	btnGen = document.getElementById("generate");
 	inputStep = document.getElementById("steps");
+	inputWColor = document.getElementById("wColor"); 
+	inputFColor = document.getElementById("fColor");
 
 	canvas = document.getElementById("canvas");
 
@@ -88,7 +91,8 @@ init = () =>{
 	window.addEventListener('resize', resizeCanvas);
 	resizeCanvas();
 
-	btnGen.addEventListener('click',btnGenClick);
+	btnGen.addEventListener('click',GenActive);
+	document.addEventListener('keydown',e=>{e.keyCode==13?GenActive():0});
 
 	//測試用
 	const cvsMsDown = e =>{
@@ -175,71 +179,20 @@ const starting = () =>{
 		bases: [],			//座標
 		RenQueue: [],		//渲染列
 		Deepest: [],		//最深
-		Toppest: []			//最高
+		Toppest: [],		//最高
+		wColor: "#432104",	//牆顏色
+		fColor: "#FCA243"	//地板顏色
 	};
 	game.seed = inputSeed.value = Math.random()*20181102|0;
 	game.blocks = inputBlocks.value = 100;
 }
 
-
-
-(lib.base = function(mode,startPosition,loop) {
-	this.initialize(mode,startPosition,loop,{});
-
-	this.addChild( this.shape = new cjs.Shape() );
-	this.shape.graphics.f("#ffa045").dr(-46,-46,93,93);
-
-	//------畫牆壁------
-	this.walls = [];
-
-	this.addChild( this.walls[0] = new cjs.Shape() );
-	this.walls[0].graphics.s("#421f0c").ss(7,2,2).mt(-47,-47).lt(47,-47).es();
-
-	this.addChild( this.walls[1] = new cjs.Shape() );
-	this.walls[1].graphics.s("#421f0c").ss(7,2,2).mt(47,-47).lt(47,47).es();
-
-	this.addChild( this.walls[2] = new cjs.Shape() );
-	this.walls[2].graphics.s("#421f0c").ss(7,2,2).mt(47,47).lt(-47,47).es();
-
-	this.addChild( this.walls[3] = new cjs.Shape() );
-	this.walls[3].graphics.s("#421f0c").ss(7,2,2).mt(-47,47).lt(-47,-47).es();
-	//------畫牆壁------
-
-	//------畫角落------
-	this.cnr = [];
-
-	this.addChild( this.cnr[0] = new cjs.Shape() );
-	this.cnr[0].graphics.f("#421f0c").dc(-48,-48,9);
-
-	this.addChild( this.cnr[1] = new cjs.Shape() );
-	this.cnr[1].graphics.f("#421f0c").dc(48,-48,9);
-
-	this.addChild( this.cnr[2] = new cjs.Shape() );
-	this.cnr[2].graphics.f("#421f0c").dc(48,48,9);
-
-	this.addChild( this.cnr[3] = new cjs.Shape() );
-	this.cnr[3].graphics.f("#421f0c").dc(-48,48,9);
-	//------畫角落------
-
-	this.addChild( this.TextD = new cjs.Text("", "50px 'Arial'", "#FFFFFF") );
-	this.TextD.textAlign = 'center';
-	this.TextD.lineHeight = 50;
-	this.TextD.lineWidth = 50;
-	this.TextD.parent = this;
-	this.TextD.setTransform(0,-25);
-
-	this.type = 'basic';
-
-}).prototype = p = new cjs.Container();
-
 //拆牆函數
 const breakWall = (obj,i) =>{
 	//obj.walls[i].visible = false;
-	if(obj.type == 'basic')obj.walls[i].graphics._instructions[4].style = "#ffa045";
-	else{
-		i = i|0;
-		obj.gotoAndStop( obj.currentFrame + (1<<i) );
-	}
+	//if(obj.type == 'basic')obj.walls[i].graphics._instructions[4].style = "#ffa045";
+	i = i|0;
+	obj.gotoAndStop( obj.currentFrame | (1<<i) );
 }
 
 const seedrandom = () =>{
@@ -391,9 +344,11 @@ const ReDraw = () =>{
 	}
 }
 
-const btnGenClick = e =>{
+const GenActive = e =>{
 	game.seed = parseInt( String( inputSeed.value.match(/\d+/g) ).replace(/\,/g,'') );
 	game.blocks = parseInt( String( inputBlocks.value.match(/\d+/g) ).replace(/\,/g,'') );
+	game.wColor = inputWColor.value;
+	game.fColor = inputFColor.value;
 	GenMaze(game.blocks);
 }
 
