@@ -238,9 +238,10 @@ const breakWall = (obj,i) =>{
 
 const seedrandom = () =>{
 	let a = 68903,	//prime 1
-		b = 37633,	//prime 2
-		m = 101653;	//prime 3 for mod
+		b = 101653,	//prime 2
+		m = 37633;	//prime 3 for mod
 	game.seed = (game.seed*a + b)%m;
+	if(game.seed<0) game.seed = (-game.seed)|0;
 	return game.seed/m;
 }
 
