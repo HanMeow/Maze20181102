@@ -217,18 +217,18 @@ const GenLevel = n =>{
 
 	if(inputPlayable.checked){
 		mb.x = mb.y = 0;							//平移迷宮
-		mb.scaleX = mb.scaleY = 1;					//重置迷宮縮放
+		mb.scaleX = mb.scaleY = 2;					//重置迷宮縮放
 		for(let i=0;i<5;i++){
 			game.blocks.push(new lib.base1());
 			mb.addChild(game.blocks[i]);
 		}
 		for(let i=0;i<4;i++){
-			game.blocks[i].x = mainWidth/2 + directions[i][0]*game.blkLength;
-			game.blocks[i].y = mainHeight/2 + directions[i][1]*game.blkLength;
+			game.blocks[i].x = mainWidth/4 + directions[i][0]*game.blkLength;
+			game.blocks[i].y = mainHeight/4 + directions[i][1]*game.blkLength;
 		}
 		mb.addChild( game.player = new lib.player() );
-		game.blocks[4].x = game.player.x = mainWidth/2;
-		game.blocks[4].y = game.player.y = mainHeight/2;
+		game.blocks[4].x = game.player.x = mainWidth/4;
+		game.blocks[4].y = game.player.y = mainHeight/4;
 		RenMaze(n,n);
 	}else{
 		mb.x = mainWidth/2 - n*game.blkLength;		//平移迷宮
@@ -382,21 +382,21 @@ const RenMaze = (x,y) =>{
 	for(let i=0;i<4;i++){
 		let dx = directions[i][0],	//X方向
 			dy = directions[i][1];	//Y方向
-		game.blocks[i].x = mainWidth/2 + directions[i][0]*game.blkLength;
-		game.blocks[i].y = mainHeight/2 + directions[i][1]*game.blkLength;
+		game.blocks[i].x = mainWidth/4 + directions[i][0]*game.blkLength;
+		game.blocks[i].y = mainHeight/4 + directions[i][1]*game.blkLength;
 		if(game.Maze.grids[x+dx][y+dy] && (game.Maze.grids[x][y][3] & 1<<i)){
 			game.blocks[i].visible = !0;
 			game.blocks[i].gotoAndStop( game.Maze.grids[x+dx][y+dy][3] );
-			if(game.Maze.Deepest==game.Maze.grids[x+dx][y+dy]){
-				game.blocks[i].TextD.text = "End";
-			}
+			if(game.Maze.Deepest==game.Maze.grids[x+dx][y+dy])
+				game.blocks[i].TextD.text = "Next";
+			else game.blocks[i].TextD.text = "";
 		}else{
 			game.blocks[i].visible = !1;
 		}
 	}
 	game.blocks[4].gotoAndStop( game.Maze.grids[x][y][3] );
-	game.blocks[4].x = mainWidth/2;
-	game.blocks[4].y = mainHeight/2;
+	game.blocks[4].x = mainWidth/4;
+	game.blocks[4].y = mainHeight/4;
 	ReDraw();
 }
 
@@ -452,17 +452,17 @@ const playerWalk = d =>{
 	if(game.Maze.grids[x+dx][y+dy] && (game.Maze.grids[x][y][3] & 1<<d)){
 		game.status = "walking";
 		function myTimer() {
-			mb.x -= game.blkLength*dx/s;
-			mb.y -= game.blkLength*dy/s;
+			mb.x -= mb.scaleX*game.blkLength*dx/s;
+			mb.y -= mb.scaleY*game.blkLength*dy/s;
 			game.player.x += game.blkLength*dx/s;
 			game.player.y += game.blkLength*dy/s;
 			c++;
-			if(c>10){
+			if(c>s){
 				clearInterval(myVar);
 				game.status = "stand";
 				mb.x = mb.y = 0;
-				game.player.x = mainWidth/2;
-				game.player.y = mainHeight/2;
+				game.player.x = mainWidth/4;
+				game.player.y = mainHeight/4;
 				game.cords = [game.cords[0]+dx, game.cords[1]+dy];
 				RenMaze(game.cords[0],game.cords[1]);
 				if(game.Maze.Deepest==game.Maze.grids[game.cords[0]][game.cords[1]]){
@@ -473,7 +473,7 @@ const playerWalk = d =>{
 				ReDraw();
 			}
 		}
-		let myVar = setInterval(myTimer, 50),
+		let myVar = setInterval(myTimer, 30),
 			c = 0,
 			s = 10;
 	}
