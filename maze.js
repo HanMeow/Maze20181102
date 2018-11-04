@@ -9,7 +9,7 @@ var canvas, stage, exportRoot, game, mb;
 (()=>{
 //方便取得陣列末值
 if(!Array.prototype.last){
-    Array.prototype.last = function(){
+	Array.prototype.last = function(){
         return this[this.length - 1];
     };
 };
@@ -18,19 +18,20 @@ let mainWidth = 720,					//RWD寬
 	mainHeight = 1280,					//RWD高
 	mainWHRatio = mainWidth/mainHeight,				//寬高比
 	log = console.log, 								//shortcut
-	inputBlocks, inputSeed, btnGen, inputStep,		//輸入值
-	inputWColor, inputFColor,						//輸入值
+	inputLevel, inputSeed, btnGen, inputStep,		//輸入值
+	inputWColor, inputFColor, inputPlayable,		//輸入值
 	p,												//shortcut
 	cjs = window.createjs;							//shortcut
 
 //初始化
 init = () =>{
-	inputBlocks = document.getElementById("blocks");
+	inputLevel = document.getElementById("level");
 	inputSeed = document.getElementById("seed");
 	btnGen = document.getElementById("generate");
 	inputStep = document.getElementById("steps");
 	inputWColor = document.getElementById("wColor"); 
 	inputFColor = document.getElementById("fColor");
+	inputPlayable = document.getElementById("playable");
 
 	canvas = document.getElementById("canvas");
 
@@ -92,7 +93,7 @@ init = () =>{
 	resizeCanvas();
 
 	btnGen.addEventListener('click',GenActive);
-	document.addEventListener('keydown',e=>{e.keyCode==13?GenActive():0});
+	document.addEventListener('keydown',keyDown);
 
 	//測試用
 	const cvsMsDown = e =>{
@@ -175,22 +176,18 @@ const starting = () =>{
 		forks2: 100,		//二岔路機率
 		forks3: 50,			//三叉路機率
 		blkLength: 100,		//格寬高
-		DeadEnds: [],		//死路
-		bases: [],			//座標
-		RenQueue: [],		//渲染列
-		Deepest: [],		//最深
-		Toppest: [],		//最高
+		cords: [0,0],		//座標
+		blocks: [],			//格
 		wColor: "#432104",	//牆顏色
-		fColor: "#FCA243"	//地板顏色
+		fColor: "#FCA243",	//地板顏色
+		status: "stand"		//遊戲狀態
 	};
 	game.seed = inputSeed.value = Math.random()*20181102|0;
-	game.blocks = inputBlocks.value = 100;
+	game.level = inputLevel.value = 100;
 }
 
 //拆牆函數
 const breakWall = (obj,i) =>{
-	//obj.walls[i].visible = false;
-	//if(obj.type == 'basic')obj.walls[i].graphics._instructions[4].style = "#ffa045";
 	i = i|0;
 	obj.gotoAndStop( obj.currentFrame | (1<<i) );
 }
@@ -206,128 +203,201 @@ const seedrandom = () =>{
 
 const directions = [ [0,-1], [1,0], [0,1], [-1,0] ];
 
-const GenMaze = n =>{
-	if(n<2)return;	//步數過小移除
+const GenLevel = n =>{
 
 	game.seed = game.seed*n|0;					//修正隨機性
+	game.blocks = [];
+	game.cords = [n,n];
 
 	mb.removeAllChildren();						//刪除原有迷宮
 
-	game.DeadEnds = [ [n,n],[n,n],[n,n],[n,n] ];//死路陣列，將原點也當作「死路」以方便計算
+	game.Maze = GenMaze(n);
 
-	game.Deepest = [n,n,0];		//最深
-	game.Toppest = [n,n];		//最高
+	//log(Maze);
 
-	game.bases = [];								//座標陣列
-	for(let i=0;i<2*n;i++)game.bases.push([]);		//座標陣列
+	if(inputPlayable.checked){
+		mb.x = mb.y = 0;							//平移迷宮
+		mb.scaleX = mb.scaleY = 1;					//重置迷宮縮放
+		for(let i=0;i<5;i++){
+			game.blocks.push(new lib.base1());
+			mb.addChild(game.blocks[i]);
+		}
+		for(let i=0;i<4;i++){
+			game.blocks[i].x = mainWidth/2 + directions[i][0]*game.blkLength;
+			game.blocks[i].y = mainHeight/2 + directions[i][1]*game.blkLength;
+		}
+		mb.addChild( game.player = new lib.player() );
+		game.blocks[4].x = game.player.x = mainWidth/2;
+		game.blocks[4].y = game.player.y = mainHeight/2;
+		RenMaze(n,n);
+	}else{
+		mb.x = mainWidth/2 - n*game.blkLength;		//平移迷宮
+		mb.y = mainHeight/2 - n*game.blkLength;		//平移迷宮
+		mb.scaleX = mb.scaleY = 1;					//重置迷宮縮放
+		for(let i=0;i<game.Maze.blocks.length;i++){
+			let block = new lib.base1();
+			block.x = game.Maze.blocks[i][0]*game.blkLength;
+			block.y = game.Maze.blocks[i][1]*game.blkLength;
+			block.gotoAndStop( game.Maze.blocks[i][3] );
+			mb.addChild(block);
+			if(inputStep.checked)block.TextD.text = block.depth = game.Maze.blocks[i][2];
+			//起點顯示 S，終點顯示 E
+			if(game.Maze.origin==game.Maze.blocks[i])block.TextD.text = "S";
+			else if(game.Maze.Deepest==game.Maze.blocks[i])block.TextD.text = "E";
+			game.blocks.push(block);
+		}
+	}	
 
-	game.RenQueue = [ mb.origin = game.bases[n][n] = new lib.base1() ];	//迷宮中心，加入渲染列
-	mb.origin.x = mb.origin.y = n*game.blkLength;						//迷宮中心座標
+	ReDraw();
+}
 
-	mb.x = mainWidth/2 - n*game.blkLength;								//平移迷宮
-	mb.y = mainHeight/2 - n*game.blkLength;								//平移迷宮
-	mb.scaleX = mb.scaleY = 1;											//重置迷宮縮放
+const GenMaze = n =>{
+	if(n<2)return false;	//步數過小移除
 
-	let remain = randomWalk(n,n,n-1);			//長迷宮，剩下的步數
+	let Maze = {},								//迷宮主物件
+		probMain = game.probMain,		//主機率
+		forks2 = game.forks2,				//岔路機率
+		forks3 = game.forks3;				//岔路機率
+
+	Maze.grids = [];							//座標陣列
+	for(let i=0;i<2*n;i++)Maze.grids.push([]);	//座標陣列
+
+	/*--迷宮座標陣列--
+	[x, y, depth, Passable]
+	x,y: 		座標
+	depth:		深度，從起點算起
+	Passable:	可通行，二進位格式，第 0123 位 代表 上右下左
+	*/
+	Maze.origin	 = Maze.grids[n][n] = [n,n,0,0];	//迷宮中心
+	Maze.Deepest = Maze.grids[n][n];				//最深
+	Maze.Toppest = Maze.grids[n][n];				//最高
+	Maze.Rightmost = Maze.grids[n][n];				//最右
+	Maze.Bottom = Maze.grids[n][n];					//最下
+	Maze.Leftmost = Maze.grids[n][n];				//最左
+
+	Maze.blocks = [ Maze.grids[n][n] ];			//生成格陣列
+	Maze.DeadEnds = [];			//死路陣列
+		
+	//方向陣列
+	const directions = [ [0,-1], [1,0], [0,1], [-1,0] ];
+	//長迷宮函數
+	const randomWalk = (x,y,n,depth=0) =>{
+		if(!x || !y || !n)return n || 0;
+
+		//持續步行至步數歸零
+		while(n>0){
+
+			let drs = [0,1,2,3],			//方向陣列index
+				p = seedrandom()*probMain,	//岔路機率
+				rs = [];					//路
+
+			//該方向已走過刪除
+			for(let i=0;i<drs.length;i++)
+				if(Maze.grids[ x+directions[ drs[i] ][0] ][ y+directions[ drs[i] ][1] ]){
+					drs.splice(i,1);
+					i--;
+				}
+
+			if(drs.length<1)break;	//無路可走，中斷迴圈並回傳剩餘步數
+
+			if( n>2 && drs.length>2 && p<forks3 )
+				rs.push( drs.splice(seedrandom()*drs.length|0, 1)[0] );	//三岔路機率，增加一條路
+			if( n>1 && drs.length>1 && p<forks2 )
+				rs.push( drs.splice(seedrandom()*drs.length|0, 1)[0] );	//二岔路機率，增加一條路
+
+			rs.push( drs.splice(seedrandom()*drs.length|0, 1)[0] );		//主路
+
+			n -= rs.length;	//剩餘步數
+			depth++;		//深度
+
+			for(let i=0;i<rs.length;i++){
+
+				let dx = directions[ rs[i] ][0],	//X方向
+					dy = directions[ rs[i] ][1];	//Y方向
+
+				//新增路，以免碰撞，並加入格列
+				Maze.blocks.push( Maze.grids[ x+dx ][ y+dy ] = [x+dx, y+dy, depth, 0] );
+
+				//檢查深度與更新深度
+				if(depth>Maze.Deepest[2])Maze.Deepest = Maze.grids[ x+dx ][ y+dy ];	
+
+				//檢查高度、最右、最下、最左，與更新高度
+				if(y+dy<Maze.Toppest[1])Maze.Toppest = Maze.grids[ x+dx ][ y+dy ];
+				else if(x+dx>Maze.Rightmost[0])Maze.Rightmost = Maze.grids[ x+dx ][ y+dy ];
+				else if(y+dy>Maze.Bottom[1])Maze.Bottom = Maze.grids[ x+dx ][ y+dy ];
+				else if(x+dx<Maze.Leftmost[0])Maze.Leftmost = Maze.grids[ x+dx ][ y+dy ];
+
+				//計算哪面牆要打掉(原點)
+				Maze.grids[x][y][3] = Maze.grids[x][y][3] | (1<<rs[i]);	
+				//計算哪面牆要打掉(新)
+				Maze.grids[ x+dx ][ y+dy ][3] = Maze.grids[ x+dx ][ y+dy ][3] | (1<<((rs[i]+2)%4));	
+			}
+
+			for(let i=0;i<rs.length-1;i++)
+				if(rs.length-i>1){									//如果是叉路則執行新的步行函數
+					let fn = ( seedrandom()*n/(rs.length-i) )|0,	//分配給岔路步數
+						dx = directions[ rs[i] ][0],				//X方向
+						dy = directions[ rs[i] ][1];				//Y方向
+					if(fn==0){
+						Maze.DeadEnds.push( Maze.grids[ x+dx ][ y+dy ] ); 	//若分配到的布數等於零，該格為死路
+					}else{
+						n -= fn;								//分配給岔路步數
+						n += randomWalk( x+dx, y+dy, fn, depth);//岔路函數
+					}
+				}
+
+			x = x + directions[ rs[ rs.length-1 ] ][0];	//下一個座標
+			y = y + directions[ rs[ rs.length-1 ] ][1];	//下一個座標
+
+			if(n<1)Maze.DeadEnds.push( Maze.grids[x][y] );	//無步數，迴圈中止，該格為死路
+		}
+
+		return n;
+	}
+
+	let remain = randomWalk(n,n,n-1);							//剩下的步數
+
+	for (let i = 0; i<4; i++){
+		remain = randomWalk(n,n,remain);	//重複4次從起點長迷宮
+	}
 
 	while(remain>0){												//還有剩下的步數就依序從死路長
-		if(game.DeadEnds.length<=0)break;							//無死路則中止
-		let crd = game.DeadEnds.shift();							//死路第一個元素
-		log(`growing ending [${crd[0]}, ${crd[1]}], remain: ${remain}, ends: ${game.DeadEnds.length}.`);
-		//if(crd[2])break;											//有檢查值代表跑完了
-		//crd[2] = 1;												//加一個檢查值代表檢查過
-		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
-		//game.DeadEnds.push( crd );		//為了比較路經最好還是加回來，待修
+		if(Maze.DeadEnds.length<=0)break;							//無死路則中止
+		let crd = Maze.DeadEnds.shift();							//死路第一個元素
+		log(`growing DeadEnds [${crd[0]}, ${crd[1]}], remain: ${remain}.`);
+		remain = randomWalk(crd[0], crd[1], remain, crd[2]);
 	}
 
 	while(remain>0){												//還有剩下的步數就依序往最上面長
 		let crd = game.Toppest;										//最高元素座標
 		log(`growing top [${crd[0]}, ${crd[1]}], remain: ${remain}.`);
-		remain = randomWalk(crd[0], crd[1], remain, game.bases[ crd[0] ][ crd[1] ].depth);
+		remain = randomWalk(crd[0], crd[1], remain, crd[2]);
 	}
 
-	//排序找最遠，待修
-	//game.DeadEnds.sort( (a,b)=>game.bases[ a[0] ][ a[1] ].depth - game.bases[ b[0] ][ b[1] ].depth );
-
-	for(let i=0;i<game.RenQueue.length;i++){
-		mb.addChild(game.RenQueue[i]);
-		if(inputStep.checked)game.RenQueue[i].TextD.text = game.RenQueue[i].depth;
-	}
-
-	//起點顯示 S，終點顯示 E
-	mb.origin.TextD.text = "S";
-	game.bases[ game.Deepest[0] ][ game.Deepest[1] ].TextD.text = "E";
-
-	ReDraw();
+	//回傳迷宮
+	return Maze;
 }
 
-const randomWalk = (x,y,n,depth=0) =>{
-	if(!x || !y || !n)return n || 0;
-
-	//log(`New path starting with x: ${x}, y: ${y}, n: ${n}, depth: ${depth}.`);
-
-	//持續步行至步數歸零
-	while(n>0){
-
-		let drs = directions.slice(0,directions.length), 	//複製方向陣列
-			p = seedrandom()*game.probMain,					//岔路機率
-			rs = [];										//路
-
-		for(let i=0;i<drs.length;i++)
-			if(game.bases[ x+drs[i][0] ][ y+drs[i][1] ]){		//該方向已走過刪除
-				drs.splice(i,1);							//該方向已走過刪除
-				i--;										//該方向已走過刪除
+const RenMaze = (x,y) =>{
+	for(let i=0;i<4;i++){
+		let dx = directions[i][0],	//X方向
+			dy = directions[i][1];	//Y方向
+		game.blocks[i].x = mainWidth/2 + directions[i][0]*game.blkLength;
+		game.blocks[i].y = mainHeight/2 + directions[i][1]*game.blkLength;
+		if(game.Maze.grids[x+dx][y+dy] && (game.Maze.grids[x][y][3] & 1<<i)){
+			game.blocks[i].visible = !0;
+			game.blocks[i].gotoAndStop( game.Maze.grids[x+dx][y+dy][3] );
+			if(game.Maze.Deepest==game.Maze.grids[x+dx][y+dy]){
+				game.blocks[i].TextD.text = "End";
 			}
-
-		if(drs.length<1)break;	//無路可走，中斷迴圈並回傳剩餘步數
-
-		if( n>2 && drs.length>2 && p<game.forks3 )
-			rs.push( drs.splice(seedrandom()*drs.length|0, 1)[0] );	//三岔路機率，增加一條路
-		if( n>1 && drs.length>1 && p<game.forks2 )
-			rs.push( drs.splice(seedrandom()*drs.length|0, 1)[0] );	//二岔路機率，增加一條路
-
-		rs.push( drs.splice(seedrandom()*drs.length|0, 1)[0] );		//主路
-
-		n -= rs.length;	//剩餘步數
-		depth++;		//深度
-
-		for(let i=0;i<rs.length;i++){
-
-			let dx = rs[i][0],	//X方向
-				dy = rs[i][1];	//Y方向
-
-			game.RenQueue.push( game.bases[ x+dx ][ y+dy ] = new lib.base1() );	//新增路，以免碰撞，並加入渲染列
-			game.bases[ x+dx ][ y+dy ].depth = depth;							//登記深度
-			game.bases[ x+dx ][ y+dy ].x = (x+dx)*game.blkLength;				//紀錄座標
-			game.bases[ x+dx ][ y+dy ].y = (y+dy)*game.blkLength;				//紀錄座標
-
-			if(depth>game.Deepest[2])game.Deepest = [ x+dx, y+dy, depth ];		//檢查深度與更新深度
-			if(y+dy<game.Toppest[1])game.Toppest = [ x+dx, y+dy ];		//檢查高度與更新高度
-
-			breakWall( game.bases[x][y], 1+dy+(dx>-1?0:2) );					//計算哪面牆要打掉(原點)
-			breakWall( game.bases[ x+dx ][ y+dy ], 2+dx-(dy<1?0:2) );			//計算哪面牆要打掉(新)
+		}else{
+			game.blocks[i].visible = !1;
 		}
-
-		for(let i=0;i<rs.length-1;i++)
-			if(rs.length-i>1){											//如果是叉路則執行新的步行函數
-				let fn = ( seedrandom()*n/(rs.length-i) )|0;			//分配給岔路步數
-				if(fn==0){
-					game.DeadEnds.push( [ x+rs[i][0], y+rs[i][1] ] ); 	//若分配到的布數等於零，該格為死路
-				}else{
-					n -= fn;											//分配給岔路步數
-					n += randomWalk( x+rs[i][0], y+rs[i][1], fn, depth);//岔路函數
-				}
-			}
-
-		x = x + rs[ rs.length-1 ][0];	//下一個座標
-		y = y + rs[ rs.length-1 ][1];	//下一個座標
-
-		if(n<1)game.DeadEnds.push( [ x, y ] );	//無步數，迴圈中止，該格為死路
 	}
-
-	//log(`remain n: ${n} and returning.`);
-
-	return n;
+	game.blocks[4].gotoAndStop( game.Maze.grids[x][y][3] );
+	game.blocks[4].x = mainWidth/2;
+	game.blocks[4].y = mainHeight/2;
+	ReDraw();
 }
 
 //平移迷宮
@@ -346,10 +416,68 @@ const ReDraw = () =>{
 
 const GenActive = e =>{
 	game.seed = parseInt( String( inputSeed.value.match(/\d+/g) ).replace(/\,/g,'') );
-	game.blocks = parseInt( String( inputBlocks.value.match(/\d+/g) ).replace(/\,/g,'') );
+	game.level = parseInt( String( inputLevel.value.match(/\d+/g) ).replace(/\,/g,'') );
 	game.wColor = inputWColor.value;
 	game.fColor = inputFColor.value;
-	GenMaze(game.blocks);
+	GenLevel(game.level);
+}
+
+const keyDown = e =>{
+	switch(e.keyCode) {
+		case 13:
+			GenActive();
+			break;
+		case 37:
+			if(game.status == "stand")playerWalk(3);
+			break;
+		case 38:
+			if(game.status == "stand")playerWalk(0);
+			break;
+		case 39:
+			if(game.status == "stand")playerWalk(1);
+			break;
+		case 40:
+			if(game.status == "stand")playerWalk(2);
+			break;
+	    default:
+	        //
+	}
+}
+
+const playerWalk = d =>{
+	let dx = directions[d][0],	//X方向
+		dy = directions[d][1],	//Y方向
+		x = game.cords[0],
+		y = game.cords[1];
+	if(game.Maze.grids[x+dx][y+dy] && (game.Maze.grids[x][y][3] & 1<<d)){
+		game.status = "walking";
+		function myTimer() {
+			mb.x -= game.blkLength*dx/s;
+			mb.y -= game.blkLength*dy/s;
+			game.player.x += game.blkLength*dx/s;
+			game.player.y += game.blkLength*dy/s;
+			c++;
+			if(c>10){
+				clearInterval(myVar);
+				game.status = "stand";
+				mb.x = mb.y = 0;
+				game.player.x = mainWidth/2;
+				game.player.y = mainHeight/2;
+				game.cords = [game.cords[0]+dx, game.cords[1]+dy];
+				RenMaze(game.cords[0],game.cords[1]);
+				if(game.Maze.Deepest==game.Maze.grids[game.cords[0]][game.cords[1]]){
+					inputLevel.value = game.level += 1;
+					GenActive(game.level);
+				}
+			}else{
+				ReDraw();
+			}
+		}
+		let myVar = setInterval(myTimer, 50),
+			c = 0,
+			s = 10;
+	}
+	
 }
 
 })();
