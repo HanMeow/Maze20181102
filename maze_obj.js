@@ -92,9 +92,14 @@ function getMCSymbolPrototype(symbol, nominalBounds, frameBounds) {
 	this.shape_2.graphics.f("#FF9966").s().p("Ag5DVQgegEgcgIQg8gPgxgiQhdg/AAhZQAAhZBdg/QBdg/CDAAQCEAABcA/QBeA/AABZQAABZheA/QgyAjg/AQQgVAFgXAEQggAEgjAAQgdAAgcgDgAAOBZIADhAgAjohAICngDgADlhNIiWAAg");
 	this.shape_2.setTransform(0,-17.5);
 
-	this.timeline.addTween(cjs.Tween.get({}).to({state:[{t:this.shape_2},{t:this.shape_1},{t:this.shape}]}).wait(1));
+	this.shape_3 = new cjs.Shape();
+	this.shape_3.graphics.f().s("#333333").ss(5,1,1).p("AABjTIgBBBABAk6ICWAAAiDgiQg8gQgxghQhdg/AAhaQAAhZBdhAQBeg/CDAAQCDAABdA/QBdBAAABZQAABahdA/QgzAig/AQICVAwIBuheABYDTIhSB4IBsB6AAzgYIAlDrIi7AAIBpB4IhPB1AAzgYQggAEgiAAQgeAAgcgDIgaDqABfghQgVAGgXADAj4ktICogDAiDgiIiQA0IhOB9AhJgXQgegEgcgH");
+	this.shape_3.setTransform(1.6,6.2);
 
-}).prototype = getMCSymbolPrototype(lib.player, new cjs.Rectangle(-34.3,-41.6,68.6,94.8), null);
+	this.timeline.addTween(cjs.Tween.get({}).to({state:[{t:this.shape_2},{t:this.shape_1},{t:this.shape}]}).to({state:[{t:this.shape_2},{t:this.shape_1},{t:this.shape_3}]},1).wait(1));
+
+}).prototype = p = new cjs.MovieClip();
+p.nominalBounds = new cjs.Rectangle(-34.3,-41.6,68.6,94.8);
 
 
 (lib.tunnel1_4 = function(mode,startPosition,loop) {

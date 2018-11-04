@@ -227,6 +227,7 @@ const GenLevel = n =>{
 			game.blocks[i].y = mainHeight/4 + directions[i][1]*game.blkLength;
 		}
 		mb.addChild( game.player = new lib.player() );
+		game.player.gotoAndStop(0);
 		game.blocks[4].x = game.player.x = mainWidth/4;
 		game.blocks[4].y = game.player.y = mainHeight/4;
 		RenMaze(n,n);
@@ -451,7 +452,9 @@ const playerWalk = d =>{
 		y = game.cords[1];
 	if(game.Maze.grids[x+dx][y+dy] && (game.Maze.grids[x][y][3] & 1<<d)){
 		game.status = "walking";
+		if(dx)game.player.scaleX = dx;
 		function myTimer() {
+			game.player.gotoAndStop(game.player.currentFrame?0:1);
 			mb.x -= mb.scaleX*game.blkLength*dx/s;
 			mb.y -= mb.scaleY*game.blkLength*dy/s;
 			game.player.x += game.blkLength*dx/s;
@@ -463,6 +466,7 @@ const playerWalk = d =>{
 				mb.x = mb.y = 0;
 				game.player.x = mainWidth/4;
 				game.player.y = mainHeight/4;
+				game.player.gotoAndStop(0);
 				game.cords = [game.cords[0]+dx, game.cords[1]+dy];
 				RenMaze(game.cords[0],game.cords[1]);
 				if(game.Maze.Deepest==game.Maze.grids[game.cords[0]][game.cords[1]]){
