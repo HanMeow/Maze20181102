@@ -467,12 +467,17 @@ const playerWalk = d =>{
 				game.player.x = mainWidth/4;
 				game.player.y = mainHeight/4;
 				game.player.gotoAndStop(0);
-				game.cords = [game.cords[0]+dx, game.cords[1]+dy];
-				RenMaze(game.cords[0],game.cords[1]);
 				if(game.Maze.Deepest==game.Maze.grids[game.cords[0]][game.cords[1]]){
 					inputLevel.value = game.level += 1;
 					GenActive(game.level);
 				}
+			}if(c==s/2){
+				mb.x += mb.scaleX*game.blkLength*dx;
+				mb.y += mb.scaleY*game.blkLength*dy;
+				game.player.x -= game.blkLength*dx;
+				game.player.y -= game.blkLength*dy;
+				game.cords = [game.cords[0]+dx, game.cords[1]+dy];
+				RenMaze(game.cords[0],game.cords[1]);
 			}else{
 				ReDraw();
 			}
