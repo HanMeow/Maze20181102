@@ -396,6 +396,9 @@ const RenMaze = (x,y) =>{
 		}
 	}
 	game.blocks[4].gotoAndStop( game.Maze.grids[x][y][3] );
+	if(game.Maze.Deepest==game.Maze.grids[x][y])
+		game.blocks[4].TextD.text = "Next";
+	else game.blocks[4].TextD.text = "";
 	game.blocks[4].x = mainWidth/4;
 	game.blocks[4].y = mainHeight/4;
 	ReDraw();
